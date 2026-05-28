@@ -2301,7 +2301,7 @@ function SignStep({ session, stepIdx, setStepIdx, onCancel, onCapture, onFinish 
       onCapture("sign");
   }, [hasSig]);
   return React.createElement("div", {
-    style: { flex: 1, display: "flex", flexDirection: "column", background: BRAND.bg }
+    style: { flex: 1, display: "flex", flexDirection: "column", background: BRAND.bg, overflow: "hidden" }
   }, React.createElement("div", {
     style: {
       padding: `${TOP} 20px 0`,
