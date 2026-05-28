@@ -1010,31 +1010,47 @@ function Home({ user, history, onStart, onHistory, onProfile, onOpen }) {
   }))));
 }
 function NewBox({ onBack, onStart }) {
-  const [boxId, setBoxId] = useS("CX-8841");
-  const [med, setMed] = useS("Insulina Glargina 100UI/mL");
-  const [lot, setLot] = useS("L-2026-M19");
-  const [origem, setOrigem] = useS("100 - Rio Claro");
-  const [destino, setDestino] = useS("500 - Jacareí");
-  const [remetente, setRemetente] = useS("IBEROQUIMICA FARMACEUTICA LTDA");
-  const [chaveNF, setChaveNF] = useS("35260511136050000117550010001946481865014112");
-  const [docMinuta, setDocMinuta] = useS("2208275");
+  const [boxId, setBoxId] = useS("");
+  const [med, setMed] = useS("");
+  const [lot, setLot] = useS("");
+  const [origem, setOrigem] = useS("");
+  const [destino, setDestino] = useS("");
+  const [remetente, setRemetente] = useS("");
+  const [chaveNF, setChaveNF] = useS("");
+  const [docMinuta, setDocMinuta] = useS("");
   const [mode, setMode] = useS("manual");
+  const fillFromQR = (data) => {
+    setBoxId(data.boxId || "");
+    setMed(data.medication || "");
+    setLot(data.lot || "");
+    setOrigem(data.origem || "");
+    setDestino(data.destino || "");
+    setRemetente(data.remetente || "");
+    setChaveNF(data.chaveNF || "");
+    setDocMinuta(data.docMinuta || "");
+    setMode("manual");
+  };
+  const canContinue = !!(boxId && med && lot);
   if (mode === "scan") {
     return React.createElement(Scanner, {
       onClose: () => setMode("manual"),
-      onResult: (v) => {
-        setBoxId(v);
-        setMode("manual");
-      }
+      onResult: () => fillFromQR(QR_MOCK)
     });
   }
   return React.createElement("div", {
-    style: { flex: 1, display: "flex", flexDirection: "column", background: BRAND.bg }
+    style: {
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      background: BRAND.bg,
+      position: "relative",
+      overflow: "hidden"
+    }
   }, React.createElement(Header, {
     onBack,
     title: "Identificar caixa"
   }), React.createElement("div", {
-    style: { flex: 1, overflow: "auto", padding: "6px 20px 0" }
+    style: { flex: 1, overflow: "auto", padding: "6px 20px 0", paddingBottom: 100 }
   }, React.createElement("p", {
     style: { fontSize: 13, color: BRAND.ink3, margin: "0 0 16px" }
   }, "Escaneie a etiqueta da caixa ou preencha os dados manualmente."), React.createElement("button", {
@@ -1109,10 +1125,22 @@ function NewBox({ onBack, onStart }) {
     value: docMinuta,
     onChange: setDocMinuta
   }))), React.createElement("div", {
-    style: { padding: `16px 20px ${BOT}`, flexShrink: 0 }
+    style: {
+      position: "absolute",
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 5,
+      padding: `14px 20px ${BOT}`,
+      background: `linear-gradient(to top, ${BRAND.bg} 72%, transparent)`,
+      pointerEvents: "none"
+    }
+  }, React.createElement("div", {
+    style: { pointerEvents: "auto" }
   }, React.createElement(PrimaryBtn, {
+    disabled: !canContinue,
     onClick: () => onStart({ boxId, medication: med, lot, origem, destino, remetente, chaveNF, docMinuta })
-  }, "Continuar ", Icon.arrow(16, "#fff"))));
+  }, "Continuar ", Icon.arrow(16, "#fff")))));
 }
 const QR_MOCK = { boxId: "CX-8841", medication: "Insulina Glargina 100UI/mL", lot: "L-2026-M19", origem: "100 - Rio Claro", destino: "500 - Jacareí", remetente: "IBEROQUIMICA FARMACEUTICA LTDA", chaveNF: "35260511136050000117550010001946481865014112", docMinuta: "2208275" };
 function Scanner({ onClose, onResult }) {
@@ -1198,7 +1226,10 @@ function Scanner({ onClose, onResult }) {
       style: { fontWeight: 600, fontSize: 18 }
     }, err === "permission" ? "Câmera bloqueada" : "Câmera indisponível"), React.createElement("div", {
       style: { fontSize: 13, color: BRAND.ink3, lineHeight: 1.5, maxWidth: 280 }
-    }, err === "permission" ? "Permita o acesso à câmera nas configurações do navegador." : "Não foi possível acessar a câmera neste dispositivo."), React.createElement(GhostBtn, {
+    }, err === "permission" ? "Permita o acesso à câmera nas configurações do navegador." : "Não foi possível acessar a câmera neste dispositivo."), React.createElement(PrimaryBtn, {
+      onClick: () => handleDetected("DEMO"),
+      style: { maxWidth: 260 }
+    }, Icon.qr(16, "#fff"), " Simular leitura (demo)"), React.createElement(GhostBtn, {
       onClick: onClose,
       style: { maxWidth: 260 }
     }, "Voltar"));
