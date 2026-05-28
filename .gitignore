@@ -11,3 +11,14 @@
 
 # Logs
 *.log
+
+# Node / Bun
+node_modules/
+bun.lockb
+bun.lock
+
+# Build output
+dist/
+
+# TypeScript build info
+*.tsbuildinfo
