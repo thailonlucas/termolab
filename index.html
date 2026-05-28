@@ -1575,25 +1575,27 @@ function Wizard({ session, stepIdx, setStepIdx, onCancel, onCapture, onFinish, u
   }
   if (mode === "preview" && pendingPhoto) {
     return React.createElement("div", {
-      style: {
-        flex: 1,
-        display: "flex",
-        flexDirection: "column",
-        background: "#000",
-        overflow: "hidden"
-      }
-    }, React.createElement("div", {
-      style: { flex: 1, minHeight: 0, display: "flex", alignItems: "center", justifyContent: "center" }
+      style: { flex: 1, position: "relative", background: "#000", overflow: "hidden" }
     }, React.createElement("img", {
       src: pendingPhoto,
       alt: "Foto capturada",
-      style: { width: "100%", height: "100%", objectFit: "contain", display: "block" }
-    })), React.createElement("div", {
       style: {
-        flexShrink: 0,
-        padding: `12px 20px ${BOT}`,
-        background: "rgba(0,0,0,0.88)",
-        backdropFilter: "blur(12px)",
+        position: "absolute",
+        inset: 0,
+        width: "100%",
+        height: "100%",
+        objectFit: "cover",
+        display: "block"
+      }
+    }), React.createElement("div", {
+      style: {
+        position: "absolute",
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 5,
+        padding: `16px 20px ${BOT}`,
+        background: "linear-gradient(to top, rgba(0,0,0,0.82) 60%, transparent)",
         display: "flex",
         gap: 12
       }
@@ -1602,7 +1604,7 @@ function Wizard({ session, stepIdx, setStepIdx, onCancel, onCapture, onFinish, u
         setPendingPhoto(null);
         setMode("camera");
       },
-      style: { color: "#fff", borderColor: "rgba(255,255,255,0.22)", flex: 1 }
+      style: { color: "#fff", borderColor: "rgba(255,255,255,0.30)", flex: 1 }
     }, "Refazer"), React.createElement(PrimaryBtn, {
       style: { flex: 2, background: "#fff", color: BRAND.ink },
       onClick: () => {
