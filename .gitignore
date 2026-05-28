@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# TLS certificates (nunca versionar chaves privadas)
+.cert/
+
+# VS Code
+.vscode/
+
+# Logs
+*.log
