@@ -18,6 +18,7 @@
   *, *::before, *::after { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; height: 100%;
+    min-height: -webkit-fill-available;
     font-family: 'Poppins', system-ui, sans-serif;
     background: #F5F1EA;
     color: #282828;
@@ -27,6 +28,7 @@
   }
   #root {
     height: 100dvh;
+    height: -webkit-fill-available;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -289,6 +291,25 @@ const Icon = {
     d: "M3 18c3-1 6-10 9-10s3 8 6 8c1.5 0 2.5-1 3-2"
   }), React.createElement("path", {
     d: "M3 21h18"
+  })),
+  share: (s = 18, c = BRAND.ink) => React.createElement("svg", {
+    width: s,
+    height: s,
+    viewBox: "0 0 24 24",
+    fill: "none",
+    stroke: c,
+    strokeWidth: "1.6",
+    strokeLinecap: "round",
+    strokeLinejoin: "round"
+  }, React.createElement("path", {
+    d: "M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"
+  }), React.createElement("polyline", {
+    points: "16 6 12 2 8 6"
+  }), React.createElement("line", {
+    x1: "12",
+    y1: "2",
+    x2: "12",
+    y2: "15"
   }))
 };
 function Photo({ label = "FOTO", hue = 200, height = 280, stamped, timestamp, boxId, stage, height_force, dataUrl }) {
@@ -437,10 +458,10 @@ function Pill({ children, tone = "neutral" }) {
 const STEPS = [
   { id: "open", title: "Abrir a caixa", sub: "Quebre o lacre e abra a caixa térmica com cuidado.", label: "Caixa aberta", needsTemp: false, stage: "ABERTURA", hue: 30 },
   { id: "temp1", title: "Medir temperatura inicial", sub: "Posicione o termômetro no centro da carga, aguarde 10s.", label: "Termômetro · interno", needsTemp: true, stage: "TEMP. INICIAL", hue: 200 },
-  { id: "remove", title: "Remover géis antigos", sub: "Retire todos os Gelox e separe para descarte/recongelamento.", label: "Géis removidos", needsTemp: false, stage: "REMOÇÃO DE GÉIS", hue: 200 },
-  { id: "temp2", title: "Medir temperatura sem géis", sub: "Confirme a temperatura da carga sem refrigeração.", label: "Termômetro · sem géis", needsTemp: true, stage: "TEMP. INTERMEDIÁRIA", hue: 25 },
-  { id: "place", title: "Posicionar novos géis", sub: "Encaixe os novos Gelox nas mesmas posições indicadas no mapa.", label: "Mapa de posições", needsTemp: false, stage: "NOVOS GÉIS", hue: 200 },
-  { id: "temp3", title: "Medir temperatura final", sub: "Confirme a temperatura após reposição dos géis.", label: "Termômetro · final", needsTemp: true, stage: "TEMP. FINAL", hue: 165 },
+  { id: "remove", title: "Remover gelo antigo", sub: "Retire todo o gelo e separe para descarte/recongelamento.", label: "Gelo removido", needsTemp: false, stage: "REMOÇÃO DE GELO", hue: 200 },
+  { id: "temp2", title: "Medir temperatura sem gelo", sub: "Confirme a temperatura da carga sem refrigeração.", label: "Termômetro · sem gelo", needsTemp: true, stage: "TEMP. INTERMEDIÁRIA", hue: 25 },
+  { id: "place", title: "Posicionar novo gelo", sub: "Encaixe o novo gelo nas mesmas posições indicadas no mapa.", label: "Mapa de posições", needsTemp: false, stage: "NOVO GELO", hue: 200 },
+  { id: "temp3", title: "Medir temperatura final", sub: "Confirme a temperatura após reposição do gelo.", label: "Termômetro · final", needsTemp: true, stage: "TEMP. FINAL", hue: 165 },
   { id: "seal", title: "Lacrar a caixa", sub: "Aplique o lacre numerado e fotografe o número visível.", label: "Lacre nº", needsTemp: false, stage: "LACRE", hue: 50 },
   { id: "sign", title: "Canhoto e assinatura", sub: "Confirme o manuseio e assine o canhoto digital.", label: "CANHOTO", needsTemp: false, stage: "CANHOTO", hue: 60, isSign: true }
 ];
@@ -742,7 +763,7 @@ function HistoryCard({ entry, onClick }) {
     style: { display: "flex", justifyContent: "space-between", gap: 8 }
   }, React.createElement("span", {
     style: { fontWeight: 600, fontSize: 14 }
-  }, entry.boxId), React.createElement("span", {
+  }, entry.boxId), Object.keys(entry.photos).length > 0 && React.createElement("span", {
     style: { fontSize: 11, color: BRAND.ink3 }
   }, formatShort(entry.completedAt))), React.createElement("div", {
     style: {
@@ -2499,7 +2520,7 @@ function Receipt({ session }) {
     label: "Inicial",
     value: t1
   }), React.createElement(TempCell, {
-    label: "Sem géis",
+    label: "Sem gelo",
     value: t2
   }), React.createElement(TempCell, {
     label: "Final",
@@ -2704,12 +2725,75 @@ function HistoryDetail({ entry, onBack }) {
     mid: isCur ? `${String(d.getDate()).padStart(2, "0")} ${mo[d.getMonth()]}` : String(d.getDate()).padStart(2, "0"),
     bot: d.getFullYear()
   });
+  const compartilhar = async () => {
+    const W = 1080;
+    const photos = STEPS.map((s) => entry.photos[s.id]).filter((p) => p?.dataUrl);
+    const photoH = Math.round(W * 9 / 16);
+    const headerH = 240;
+    const gap = 24;
+    const H = headerH + photos.length * (photoH + gap) + gap;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = Math.max(H, headerH + gap);
+    const ctx = canvas.getContext("2d");
+    ctx.fillStyle = "#F5F1EA";
+    ctx.fillRect(0, 0, W, canvas.height);
+    ctx.fillStyle = "#282828";
+    ctx.fillRect(0, 0, W, headerH);
+    ctx.fillStyle = "#fff";
+    ctx.font = "700 52px system-ui,sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("VESTRA · TermoLab Track", 52, 76);
+    ctx.font = "500 34px system-ui,sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.85)";
+    ctx.fillText(`Caixa ${entry.boxId}`, 52, 128);
+    ctx.font = "400 26px system-ui,sans-serif";
+    ctx.fillStyle = "rgba(255,255,255,0.62)";
+    const medShort = entry.medication.length > 46 ? entry.medication.slice(0, 44) + "…" : entry.medication;
+    ctx.fillText(medShort, 52, 170);
+    ctx.fillText(`Temp. final: ${entry.temps.temp3 || "—"}°C  ·  ${formatTs(entry.completedAt)}`, 52, 210);
+    let y = headerH + gap;
+    for (const p of photos) {
+      await new Promise((resolve) => {
+        const img = new Image;
+        img.onload = () => {
+          ctx.drawImage(img, 40, y, W - 80, photoH);
+          y += photoH + gap;
+          resolve();
+        };
+        img.onerror = resolve;
+        img.src = p.dataUrl;
+      });
+    }
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], `termolab-${entry.boxId}.jpg`, { type: "image/jpeg" });
+      try {
+        if (navigator.share && navigator.canShare?.({ files: [file] })) {
+          await navigator.share({
+            title: `Manuseio ${entry.boxId}`,
+            text: `TermoLab Track · ${entry.boxId} · ${entry.medication}`,
+            files: [file]
+          });
+        } else {
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = `termolab-${entry.boxId}.jpg`;
+          a.click();
+          setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+        }
+      } catch (e) {
+        if (e.name !== "AbortError")
+          console.error("[TermoLab] share error", e);
+      }
+    }, "image/jpeg", 0.9);
+  };
   return React.createElement("div", {
     style: { flex: 1, display: "flex", flexDirection: "column", background: BRAND.bg, overflow: "hidden" }
   }, React.createElement(Header, {
     onBack,
     title: "Manuseio",
     right: React.createElement("button", {
+      onClick: compartilhar,
       style: {
         padding: "8px 12px",
         borderRadius: 99,
@@ -2722,7 +2806,7 @@ function HistoryDetail({ entry, onBack }) {
         alignItems: "center",
         gap: 4
       }
-    }, "PDF")
+    }, Icon.share(14, BRAND.ink), " Compartilhar")
   }), React.createElement("div", {
     style: { flex: 1, overflow: "auto" }
   }, React.createElement("div", {
@@ -2830,7 +2914,7 @@ function HistoryDetail({ entry, onBack }) {
     label: "Inicial",
     value: entry.temps.temp1
   }), React.createElement(TempCell, {
-    label: "Sem géis",
+    label: "Sem gelo",
     value: entry.temps.temp2
   }), React.createElement(TempCell, {
     label: "Final",
