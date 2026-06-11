@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { BRAND } from './constants';
-import { formatTs } from './utils';
-import { loadHistory, saveHistory } from './persistence';
+import { saveHandling, loadHandlings } from './persistence';
+import { useAuth } from './contexts/AuthContext';
 import { Login } from './components/Login';
 import { Home } from './components/Home';
 import { NewBox } from './components/NewBox';
@@ -11,83 +11,155 @@ import { Done } from './components/Done';
 import { History } from './components/History';
 import { HistoryDetail } from './components/History/HistoryDetail';
 import { Profile } from './components/Profile';
-import type { Session, HistoryEntry, User, Route } from './types';
+import type { Session, HistoryEntry, LocalMovement, User, Route } from './types';
+
+type AppRoute = Exclude<Route, 'login'>;
 
 export function App() {
-  const [route, setRoute]           = useState<Route>('login');
-  const [user]                      = useState<User>({ name: 'Ana Coutinho', role: 'Operadora Vestra · SP' });
-  const [session, setSession]       = useState<Session | null>(null);
-  const [history, setHistory]       = useState<HistoryEntry[]>(loadHistory);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [stepIdx, setStepIdx]       = useState(0);
+  const { user, profile, loading } = useAuth();
 
-  const go = (r: Route) => setRoute(r);
+  const [route, setRoute]                   = useState<AppRoute>('home');
+  const [session, setSession]               = useState<Session | null>(null);
+  const [history, setHistory]               = useState<HistoryEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [selectedId, setSelectedId]         = useState<string | null>(null);
+  const [lastMovements, setLastMovements]   = useState<LocalMovement[]>([]);
 
-  useEffect(() => { saveHistory(history); }, [history]);
+  const go = (r: AppRoute) => setRoute(r);
 
-  const captureStep = (stepId: string, value?: string, dataUrl?: string) => {
-    const ts = formatTs(new Date());
-    setSession(s => s ? ({
-      ...s,
-      photos: { ...s.photos, [stepId]: { taken: true, ts, dataUrl: dataUrl ?? null } },
-      temps: value !== undefined ? { ...s.temps, [stepId]: value } : s.temps,
-    }) : s);
+  useEffect(() => {
+    if (!user) { setHistory([]); return; }
+    setHistoryLoading(true);
+    loadHandlings(user.id)
+      .then(setHistory)
+      .catch(err => console.error('[TermoLab] Failed to load history:', err))
+      .finally(() => setHistoryLoading(false));
+  }, [user?.id]);
+
+  const appUser: User = {
+    name: profile?.full_name ?? user?.user_metadata?.full_name ?? user?.email ?? 'Usuário',
+    role: profile?.role ?? 'user',
   };
 
-  const finishSession = () => {
-    const entry: HistoryEntry = {
-      id: 'H-' + Math.floor(Math.random() * 9000 + 1000),
-      ...(session as Session),
-      completedAt: new Date(),
-      status: 'ok',
-    };
-    setHistory(h => [entry, ...h]);
-    setSession(null);
-    setSelectedId(entry.id);
-    go('handlingDone');
+  const finishSession = async (movements: LocalMovement[]) => {
+    if (!session || !user) return;
+    const fullSession: Session = { ...session, movements };
+
+    try {
+      const entry = await saveHandling(fullSession, user.id);
+      setLastMovements(movements);
+      setHistory(h => {
+        // If the handling already exists in history (box reuse), replace it; otherwise prepend.
+        const idx = h.findIndex(x => x.id === entry.id);
+        if (idx >= 0) {
+          const updated = [...h];
+          updated[idx] = entry;
+          return updated;
+        }
+        return [entry, ...h];
+      });
+      setSession(null);
+      setSelectedId(entry.id);
+      go('handlingDone');
+    } catch (err) {
+      console.error('[TermoLab] Failed to save handling:', err);
+      const now = new Date();
+      const fallback: HistoryEntry = {
+        id: 'local-' + Date.now(),
+        boxId: fullSession.boxId,
+        medication: fullSession.medication,
+        lot: fullSession.lot,
+        origem: fullSession.origem,
+        destino: fullSession.destino,
+        remetente: fullSession.remetente,
+        chaveNF: fullSession.chaveNF,
+        docMinuta: fullSession.docMinuta,
+        startedAt: fullSession.startedAt,
+        completedAt: now,
+        operator: fullSession.operator,
+        handlingStatus: 'completed',
+        sessionCount: 1,
+        latestSessionStatus: 'submitted',
+      };
+      setLastMovements(movements);
+      setHistory(h => [fallback, ...h]);
+      setSession(null);
+      setSelectedId(fallback.id);
+      go('handlingDone');
+    }
   };
 
   const selectedEntry = history.find(h => h.id === selectedId);
 
+  if (loading) {
+    return (
+      <div style={{
+        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: BRAND.bg,
+      }}>
+        <div style={{ fontSize: 13, color: BRAND.ink3 }}>Carregando…</div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: BRAND.bg, color: BRAND.ink }}>
+        <Login />
+      </div>
+    );
+  }
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: BRAND.bg, color: BRAND.ink }}>
-      {route === 'login' && (
-        <Login onSubmit={() => go('home')} />
-      )}
       {route === 'home' && (
-        <Home user={user} history={history}
+        <Home
+          user={appUser}
+          history={history}
+          loading={historyLoading}
           onStart={() => go('newBox')}
           onHistory={() => go('history')}
           onProfile={() => go('profile')}
-          onOpen={id => { setSelectedId(id); go('historyDetail'); }} />
+          onOpen={id => { setSelectedId(id); go('historyDetail'); }}
+        />
       )}
       {route === 'newBox' && (
         <NewBox onBack={() => go('home')}
-          onStart={d => { setSession({ ...d, photos: {}, temps: {}, startedAt: new Date() }); go('briefing'); }} />
+          onStart={d => { setSession({ ...d, movements: [], startedAt: new Date() }); go('briefing'); }} />
       )}
       {route === 'briefing' && session && (
         <Briefing session={session} onBack={() => go('newBox')}
-          onStart={() => { setStepIdx(0); go('wizard'); }} />
+          onStart={() => go('wizard')} />
       )}
       {route === 'wizard' && session && (
-        <Wizard session={session} stepIdx={stepIdx} setStepIdx={setStepIdx}
-          onCancel={() => go('home')} onCapture={captureStep} onFinish={finishSession}
-          userName={user.name} />
+        <Wizard session={session}
+          onCancel={() => go('home')} onFinish={finishSession}
+          userName={appUser.name} />
       )}
-      {route === 'handlingDone' && history[0] && (
-        <Done entry={history[0]}
+      {route === 'handlingDone' && selectedEntry && (
+        <Done
+          entry={selectedEntry}
+          movements={lastMovements}
           onClose={() => go('home')}
-          onView={() => { setSelectedId(history[0].id); go('historyDetail'); }} />
+          onView={() => go('historyDetail')}
+        />
       )}
       {route === 'history' && (
-        <History history={history} onBack={() => go('home')}
-          onOpen={id => { setSelectedId(id); go('historyDetail'); }} />
+        <History
+          history={history}
+          loading={historyLoading}
+          onBack={() => go('home')}
+          onOpen={id => { setSelectedId(id); go('historyDetail'); }}
+        />
       )}
       {route === 'historyDetail' && (
-        <HistoryDetail entry={selectedEntry} onBack={() => go('history')} />
+        <HistoryDetail
+          entry={selectedEntry}
+          onBack={() => go('history')}
+        />
       )}
       {route === 'profile' && (
-        <Profile user={user} onBack={() => go('home')} onLogout={() => go('login')} />
+        <Profile user={appUser} onBack={() => go('home')} />
       )}
     </div>
   );

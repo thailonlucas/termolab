@@ -8,9 +8,10 @@ interface ReceiptProps {
 }
 
 export function Receipt({ session }: ReceiptProps) {
-  const t1 = session.temps.temp1 || '—';
-  const t2 = session.temps.temp2 || '—';
-  const t3 = session.temps.temp3 || '—';
+  const tempMovs = session.movements.filter(m => m.requiresTemperature && m.temperature);
+  const t1 = tempMovs[0]?.temperature || '—';
+  const t2 = tempMovs[1]?.temperature || '—';
+  const t3 = tempMovs[2]?.temperature || '—';
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: `1px dashed ${BRAND.line}`, paddingBottom: 10 }}>
@@ -27,11 +28,13 @@ export function Receipt({ session }: ReceiptProps) {
       <RRow label="Remetente"   value={session.remetente} />
       <RRow label="Chave NF"    value={session.chaveNF} mono />
       <RRow label="Doc / Minuta" value={session.docMinuta} />
-      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-        <TempCell label="Inicial"  value={t1} />
-        <TempCell label="Sem gelo" value={t2} />
-        <TempCell label="Final"    value={t3} ok />
-      </div>
+      {tempMovs.length > 0 && (
+        <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+          <TempCell label="Inicial"  value={t1} />
+          {tempMovs.length > 1 && <TempCell label="Interm."  value={t2} />}
+          {tempMovs.length > 2 && <TempCell label="Final"    value={t3} ok />}
+        </div>
+      )}
     </div>
   );
 }

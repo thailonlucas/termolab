@@ -3,7 +3,7 @@ import { BRAND, TOP, BOT } from '../../constants';
 import { Icon } from '../icons';
 import { PrimaryBtn, GhostBtn } from '../shared';
 import { formatTs } from '../../utils';
-import type { Session, Step } from '../../types';
+import type { Session } from '../../types';
 
 function _rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
@@ -15,7 +15,8 @@ function _rrect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
 }
 
 interface CameraProps {
-  step: Step;
+  label: string;     // movement type display name, shown in center hint
+  stage: string;     // short label baked into the photo stamp
   session: Session;
   onClose: () => void;
   onShoot: (dataUrl: string) => void;
@@ -23,7 +24,7 @@ interface CameraProps {
   tempValue?: string;
 }
 
-export function Camera({ step, session, onClose, onShoot, userName = '', tempValue = '' }: CameraProps) {
+export function Camera({ label, stage, session, onClose, onShoot, userName = '', tempValue = '' }: CameraProps) {
   const videoRef  = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -98,7 +99,7 @@ export function Camera({ step, session, onClose, onShoot, userName = '', tempVal
       ctx.font = `${Math.round(fs * 0.88)}px "JetBrains Mono",monospace`;
       ctx.fillStyle = '#FFE9B8';
       ctx.textAlign = 'left';
-      ctx.fillText(`${session.boxId} · ${step.stage}`, lx, y2);
+      ctx.fillText(`${session.boxId} · ${stage}`, lx, y2);
       ctx.textAlign = 'right';
       ctx.fillStyle = '#fff';
       ctx.fillText(nowTime, rx, y2);
@@ -168,7 +169,7 @@ export function Camera({ step, session, onClose, onShoot, userName = '', tempVal
         cx.textAlign = 'right'; cx.fillText(d, srx, sy1);
         cx.font = `${Math.round(sfs * 0.88)}px "JetBrains Mono",monospace`;
         cx.fillStyle = '#FFE9B8'; cx.textAlign = 'left';
-        cx.fillText(`${session?.boxId || 'CX'} · ${step?.stage || 'ETAPA'}`, slx, sy2);
+        cx.fillText(`${session?.boxId || 'CX'} · ${stage || 'ETAPA'}`, slx, sy2);
         cx.fillStyle = '#fff'; cx.textAlign = 'right'; cx.fillText(t, srx, sy2);
         onShoot(cv.toDataURL('image/jpeg', 0.88));
       }} style={{ maxWidth: 260 }}>
@@ -195,7 +196,7 @@ export function Camera({ step, session, onClose, onShoot, userName = '', tempVal
           {Icon.close(18, '#fff')}
         </button>
         <div style={{ padding: '8px 14px', borderRadius: 99, background: 'rgba(0,0,0,0.5)', fontFamily: 'JetBrains Mono,monospace', color: '#fff', fontSize: 11, letterSpacing: 0.5 }}>
-          {session.boxId} · {step.stage}
+          {session.boxId} · {stage}
         </div>
         <div style={{ width: 38 }} />
       </div>
@@ -207,7 +208,7 @@ export function Camera({ step, session, onClose, onShoot, userName = '', tempVal
         )}
         {ready && (
           <div style={{ padding: '10px 16px', borderRadius: 12, background: 'rgba(0,0,0,0.45)', color: '#fff', fontSize: 13, fontWeight: 500, textAlign: 'center', maxWidth: 260, lineHeight: 1.4 }}>
-            {step.title} — enquadre antes de capturar
+            {label} — enquadre antes de capturar
           </div>
         )}
       </div>
@@ -219,7 +220,7 @@ export function Camera({ step, session, onClose, onShoot, userName = '', tempVal
           <div style={{ color: '#fff' }}>{nowDate}</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
-          <div>{session.boxId} · {step.stage}</div>
+          <div>{session.boxId} · {stage}</div>
           <div style={{ color: '#fff' }}>{nowTime}</div>
         </div>
         {hasExtra && (

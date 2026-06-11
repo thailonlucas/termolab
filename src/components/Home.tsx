@@ -1,36 +1,27 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BRAND, TOP, BOT } from '../constants';
 import { Icon } from './icons';
-import { Stat, IconBtn, Pill } from './shared';
+import { Stat, IconBtn } from './shared';
 import { VestraLogo } from './VestraLogo';
 import { HistoryCard } from './History/HistoryCard';
-import { formatShort } from '../utils';
 import type { HistoryEntry, User } from '../types';
 
 interface HomeProps {
   user: User;
   history: HistoryEntry[];
+  loading?: boolean;
   onStart: () => void;
   onHistory: () => void;
   onProfile: () => void;
   onOpen: (id: string) => void;
 }
 
-export function Home({ user, history, onStart, onHistory, onProfile, onOpen }: HomeProps) {
-  const today = new Date(); today.setHours(0, 0, 0, 0);
+export function Home({ user, history, loading, onStart, onHistory, onProfile, onOpen }: HomeProps) {
+  const today   = new Date(); today.setHours(0, 0, 0, 0);
   const weekAgo = new Date(today); weekAgo.setDate(today.getDate() - 6);
-  const realToday = history.filter(h => new Date(h.completedAt) >= today).length;
-  const realWeek  = history.filter(h => new Date(h.completedAt) >= weekAgo).length;
-  const [sim] = useState(() => ({
-    today: realToday || Math.floor(Math.random() * 5) + 2,
-    week:  realWeek  || Math.floor(Math.random() * 18) + 14,
-  }));
-  const countToday = realToday > 0 ? realToday : sim.today;
-  const countWeek  = realWeek  > 0 ? realWeek  : sim.week;
 
-  // suppress unused warning — formatShort used in HistoryCard
-  void formatShort;
-  void Pill;
+  const countToday = history.filter(h => new Date(h.completedAt) >= today).length;
+  const countWeek  = history.filter(h => new Date(h.completedAt) >= weekAgo).length;
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: BRAND.bg, overflow: 'auto' }}>
@@ -45,13 +36,15 @@ export function Home({ user, history, onStart, onHistory, onProfile, onOpen }: H
           <IconBtn onClick={onProfile}>{Icon.user(18)}</IconBtn>
         </div>
       </div>
+
       {/* greeting */}
       <div style={{ padding: '28px 20px 0' }}>
         <div style={{ fontSize: 13, color: BRAND.ink3 }}>Olá, {user.name.split(' ')[0]}</div>
         <h1 style={{ margin: '4px 0 0', fontWeight: 600, fontSize: 26, letterSpacing: -0.6, lineHeight: 1.15 }}>
-          Pronta para o<br/>próximo manuseio?
+          Pronto para o<br/>próximo manuseio?
         </h1>
       </div>
+
       {/* CTA card */}
       <div style={{ padding: '24px 20px 0' }}>
         <button onClick={onStart} style={{
@@ -69,7 +62,7 @@ export function Home({ user, history, onStart, onHistory, onProfile, onOpen }: H
               <div style={{ fontWeight: 600, fontSize: 22, lineHeight: 1.15, marginTop: 6, letterSpacing: -0.4 }}>
                 Iniciar troca<br/>de gelo
               </div>
-              <div style={{ marginTop: 14, fontSize: 12, opacity: 0.65 }}>Guia em 8 etapas · com fotos carimbadas</div>
+              <div style={{ marginTop: 14, fontSize: 12, opacity: 0.65 }}>Fotos carimbadas por movimentação</div>
             </div>
             <div style={{ width: 44, height: 44, borderRadius: 99, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               {Icon.arrow(18, BRAND.ink)}
@@ -77,19 +70,30 @@ export function Home({ user, history, onStart, onHistory, onProfile, onOpen }: H
           </div>
         </button>
       </div>
+
       {/* stats */}
       <div style={{ padding: '16px 20px 0', display: 'flex', gap: 10 }}>
-        <Stat label="Hoje"        value={countToday} sub="manuseios" />
-        <Stat label="Esta semana" value={countWeek}  sub="manuseios" />
-        <Stat label="Alertas"     value="0"          sub="ativos" tone="cold" />
+        <Stat label="Hoje"        value={loading ? '—' : countToday} sub="manuseios" />
+        <Stat label="Esta semana" value={loading ? '—' : countWeek}  sub="manuseios" />
+        <Stat label="Total"       value={loading ? '—' : history.length} sub="registros" />
       </div>
+
       {/* recent */}
       <div style={{ padding: '28px 20px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
         <div style={{ fontWeight: 600, fontSize: 15 }}>Manuseios recentes</div>
         <button onClick={onHistory} style={{ background: 'none', border: 'none', fontSize: 12, color: BRAND.ink3, fontWeight: 500 }}>Ver tudo →</button>
       </div>
+
       <div style={{ padding: `0 20px ${BOT}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {history.length === 0 ? (
+        {loading ? (
+          [1, 2, 3].map(i => (
+            <div key={i} style={{
+              height: 74, borderRadius: 16,
+              background: BRAND.card, border: `1px solid ${BRAND.line}`,
+              opacity: 0.4 + i * 0.1,
+            }} />
+          ))
+        ) : history.length === 0 ? (
           <div style={{
             border: `1.5px dashed ${BRAND.ink4}`, borderRadius: 16, padding: '32px 20px',
             display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
