@@ -5,7 +5,7 @@
 @custom-variant dark (&:is(.dark *));
 
 /* ===========================================================
- * TermoLab — Warm minimalist design system
+ * TermoTracking — Warm minimalist design system
  * =========================================================== */
 
 @theme inline {
@@ -188,7 +188,7 @@
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
   border-radius: 14px;
-  font-size: 15px;
+  font-size: 16px;
   color: var(--color-foreground);
   transition: border-color 0.15s ease;
 }

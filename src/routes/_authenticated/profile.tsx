@@ -18,7 +18,7 @@ function Profile() {
 
   return (
     <div>
-      <PageHeader title="Perfil" variant="plain" />
+      <PageHeader title="Perfil" />
 
       <div className="page-pad pb-10">
         <div className="card-soft p-6 flex flex-col items-center text-center">

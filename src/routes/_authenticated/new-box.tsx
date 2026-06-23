@@ -5,6 +5,7 @@ import { CameraCapture } from "@/components/CameraCapture";
 import { wizardStore } from "@/lib/session-store";
 import { supabase } from "@/integrations/supabase/client";
 import { QrCode, CheckCircle2, Loader2 } from "lucide-react";
+import { LeaveConfirmDialog } from "@/components/LeaveConfirmDialog";
 
 export const Route = createFileRoute("/_authenticated/new-box")({
   component: NewBox,
@@ -17,12 +18,16 @@ function NewBox() {
   const [form, setForm] = useState(wizardStore.emptyBox);
   const [scanning, setScanning] = useState(false);
   const [lookupStatus, setLookupStatus] = useState<LookupStatus>("idle");
+  const [showLeaveDialog, setShowLeaveDialog] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const set = <K extends keyof typeof form>(k: K, v: string) =>
     setForm((f) => ({ ...f, [k]: v }));
 
   const canContinue = !!form.box_id;
+  const hasData = Object.values(form).some((v) => !!v);
+  const hasDataRef = useRef(hasData);
+  hasDataRef.current = hasData;
 
   // Debounced lookup when box_id changes
   useEffect(() => {
@@ -69,6 +74,27 @@ function NewBox() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.box_id]);
 
+  // Block hardware back button
+  useEffect(() => {
+    window.history.pushState({ blocked: true }, "");
+
+    function handlePopState() {
+      window.history.pushState({ blocked: true }, "");
+      if (hasDataRef.current) {
+        setShowLeaveDialog(true);
+      } else {
+        navigate({ to: "/" });
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
+  function confirmLeave() {
+    navigate({ to: "/" });
+  }
+
   function applyQR(text: string) {
     setScanning(false);
     set("box_id", text.trim());
@@ -85,6 +111,7 @@ function NewBox() {
       <PageHeader
         title="Identificar caixa"
         subtitle="Escaneie a etiqueta da caixa ou preencha os dados manualmente."
+        onBack={() => hasData ? setShowLeaveDialog(true) : navigate({ to: "/" })}
       />
 
       <div className="page-pad pb-32 space-y-3">
@@ -136,6 +163,12 @@ function NewBox() {
       {scanning && (
         <CameraCapture mode="qr" onClose={() => setScanning(false)} onDecoded={applyQR} />
       )}
+
+      <LeaveConfirmDialog
+        open={showLeaveDialog}
+        onOpenChange={setShowLeaveDialog}
+        onConfirm={confirmLeave}
+      />
     </div>
   );
 }

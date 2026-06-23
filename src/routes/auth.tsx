@@ -1,31 +1,46 @@
 import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth-context";
 import { toast } from "sonner";
+import { Eye, EyeOff } from "lucide-react";
+
 
 export const Route = createFileRoute("/auth")({
   ssr: false,
   component: AuthPage,
 });
 
-type Mode = "signin" | "signup" | "forgot";
+type Mode = "signin" | "signup" | "forgot" | "reset";
 
 function AuthPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, isRecovery } = useAuth();
   const navigate = useNavigate();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
-  if (!loading && user) {
+  useEffect(() => {
+    if (isRecovery) setMode("reset");
+  }, [isRecovery]);
+
+  if (!loading && user && !isRecovery) {
     return <Navigate to="/" />;
   }
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (mode === "reset" && password !== confirmPassword) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+
     setBusy(true);
     try {
       if (mode === "signin") {
@@ -44,13 +59,18 @@ function AuthPage() {
         if (error) throw error;
         toast.success("Conta criada. Você já pode entrar.");
         setMode("signin");
-      } else {
+      } else if (mode === "forgot") {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth`,
         });
         if (error) throw error;
         toast.success("Enviamos um link para seu e-mail.");
         setMode("signin");
+      } else if (mode === "reset") {
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) throw error;
+        toast.success("Senha atualizada com sucesso.");
+        navigate({ to: "/" });
       }
     } catch (err) {
       toast.error((err as Error).message);
@@ -66,9 +86,9 @@ function AuthPage() {
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-ink text-primary-foreground font-bold text-xl mb-4">
             T
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">TermoLab</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">TermoTracking</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Rastreio de manuseio · Vestra Logística
+            {mode === "reset" ? "Criar nova senha" : "Rastreio de manuseio · Vestra Logística"}
           </p>
         </div>
 
@@ -82,33 +102,68 @@ function AuthPage() {
               onChange={(e) => setName(e.target.value)}
             />
           )}
-          <input
-            className="field focus:field-focus"
-            type="email"
-            placeholder="E-mail"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          {mode !== "forgot" && (
+          {mode !== "reset" && (
             <input
               className="field focus:field-focus"
-              type="password"
-              placeholder="Senha"
+              type="email"
+              placeholder="E-mail"
               required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
+          )}
+          {mode !== "forgot" && (
+            <div className="relative">
+              <input
+                className="field focus:field-focus pr-12"
+                type={showPassword ? "text" : "password"}
+                placeholder={mode === "reset" ? "Nova senha" : "Senha"}
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+          )}
+          {mode === "reset" && (
+            <div className="relative">
+              <input
+                className="field focus:field-focus pr-12"
+                type={showConfirm ? "text" : "password"}
+                placeholder="Confirmar nova senha"
+                required
+                minLength={6}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm((v) => !v)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                tabIndex={-1}
+              >
+                {showConfirm ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           )}
 
           <button
             type="submit"
+            disabled={busy}
             className={`btn-primary w-full mt-2 ${busy ? "btn-primary-disabled" : ""}`}
           >
             {mode === "signin" && "Entrar"}
             {mode === "signup" && "Criar conta"}
             {mode === "forgot" && "Enviar link"}
+            {mode === "reset" && "Salvar nova senha"}
           </button>
         </form>
 
@@ -138,6 +193,11 @@ function AuthPage() {
             <button onClick={() => setMode("signin")} className="text-foreground font-medium">
               Voltar ao login
             </button>
+          )}
+          {mode === "reset" && (
+            <p className="text-xs text-muted-foreground">
+              Mínimo de 6 caracteres.
+            </p>
           )}
         </div>
       </div>

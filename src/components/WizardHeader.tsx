@@ -15,11 +15,11 @@ export function WizardHeader({
 }) {
   return (
     <header className="safe-top page-pad pb-4 border-b border-border/50">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-green-500 mt-[3px]" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center justify-center gap-2">
+          <span className="w-2 h-2 rounded-full bg-green-500" />
           <span className="text-xs text-muted-foreground font-medium tracking-wide uppercase">
-            Sessão ativa
+            Sessão atual
           </span>
         </div>
         <button

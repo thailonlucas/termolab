@@ -6,6 +6,7 @@ type AuthCtx = {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  isRecovery: boolean;
   signOut: () => Promise<void>;
 };
 
@@ -13,15 +14,18 @@ const Ctx = createContext<AuthCtx>({
   user: null,
   session: null,
   loading: true,
+  isRecovery: false,
   signOut: async () => {},
 });
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRecovery, setIsRecovery] = useState(false);
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      setIsRecovery(event === "PASSWORD_RECOVERY");
       setSession(s);
       setLoading(false);
     });
@@ -38,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: session?.user ?? null,
         session,
         loading,
+        isRecovery,
         signOut: async () => {
           await supabase.auth.signOut();
         },

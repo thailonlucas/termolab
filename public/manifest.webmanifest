@@ -1,0 +1,11 @@
+{
+  "name": "TermoTracking · Vestra",
+  "short_name": "TermoTracking",
+  "description": "Rastreio de manuseio de caixas térmicas farmacêuticas.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F1EA",
+  "theme_color": "#F5F1EA",
+  "orientation": "portrait-primary",
+  "lang": "pt-BR"
+}

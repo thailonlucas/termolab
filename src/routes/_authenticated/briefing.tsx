@@ -16,10 +16,10 @@ function Briefing() {
   }
 
   return (
-    <div>
+    <div className="flex flex-col min-h-dvh">
       <PageHeader title="Nova manutenção" />
 
-      <div className="page-pad pb-32">
+      <div className="flex-1 overflow-y-auto page-pad pb-4">
         <div className="card-dark p-5">
           <p className="text-xs opacity-70 uppercase tracking-wider">Caixa</p>
           <p className="text-2xl font-semibold mt-1">NF {box.nf_key}</p>
@@ -44,22 +44,19 @@ function Briefing() {
         </div>
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 safe-bottom px-5 pt-4 bg-gradient-to-t from-background via-background to-transparent">
-        <div className="max-w-md mx-auto">
-          <button
-            className="btn-primary w-full"
-            onClick={() => {
-              // Clear any leftover movements from a previous draft
-              const cur = wizardStore.get();
-              if (cur.movements.length) {
-                cur.movements.forEach((m) => wizardStore.removeMovement(m.localId));
-              }
-              navigate({ to: "/wizard" });
-            }}
-          >
-            Iniciar <ArrowRight size={18} />
-          </button>
-        </div>
+      <div className="shrink-0 safe-bottom px-5 pt-4 bg-gradient-to-t from-background via-background to-transparent">
+        <button
+          className="btn-primary w-full"
+          onClick={() => {
+            const cur = wizardStore.get();
+            if (cur.movements.length) {
+              cur.movements.forEach((m) => wizardStore.removeMovement(m.localId));
+            }
+            navigate({ to: "/wizard" });
+          }}
+        >
+          Iniciar <ArrowRight size={18} />
+        </button>
       </div>
     </div>
   );

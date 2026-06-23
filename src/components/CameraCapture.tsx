@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
-import { X, Camera as CameraIcon, RefreshCcw, Check, ChevronLeft, Thermometer as ThermoIcon } from "lucide-react";
-import { Thermometer } from "@/components/Thermometer";
+import { X, Camera as CameraIcon, RefreshCcw, Check, ChevronLeft, Thermometer as ThermoIcon, PlusCircle, Trash2Icon, ImagePlus } from "lucide-react";
+import { ThermometerInput } from "@/components/ThermometerInput";
 
 export type CapturedPhoto = { dataUrl: string };
 
@@ -12,6 +12,7 @@ type Props =
       stageLabel: string;
       onClose: () => void;
       onCapture: (photo: CapturedPhoto) => void;
+      onAddMore?: (photo: CapturedPhoto) => void;
       thermoValue?: number;
       onThermoChange?: (v: number) => void;
     }
@@ -34,6 +35,10 @@ export function CameraCapture(props: Props) {
   useEffect(() => {
     let cancelled = false;
     async function start() {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError("Câmera indisponível. O acesso à câmera exige HTTPS — use o link https:// da rede ou acesse via localhost.");
+        return;
+      }
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 1280 } },
@@ -122,7 +127,7 @@ export function CameraCapture(props: Props) {
     ctx.fillStyle = "#fff";
     // bottom-left
     ctx.textAlign = "left";
-    ctx.fillText("VESTRA · TermoLab Track", pad, h - pad - lh);
+    ctx.fillText("VESTRA · TermoTracking", pad, h - pad - lh);
     ctx.font = `500 ${fs}px Urbanist, system-ui, sans-serif`;
     ctx.fillText(
       `Caixa ${props.boxId} · ${props.stageLabel}`,
@@ -143,12 +148,6 @@ export function CameraCapture(props: Props) {
 
     const dataUrl = c.toDataURL("image/jpeg", 0.85);
     setPreview(dataUrl);
-  }
-
-  function confirm() {
-    if (props.mode === "photo" && preview) {
-      props.onCapture({ dataUrl: preview });
-    }
   }
 
   return (
@@ -182,14 +181,24 @@ export function CameraCapture(props: Props) {
 
           {preview ? (
             <div
-              className="absolute inset-0 flex flex-col bg-background"
+              className="absolute inset-0 overflow-hidden bg-background"
               style={{
                 backgroundImage: "radial-gradient(circle, #e2e8f0 1.5px, transparent 1.5px)",
                 backgroundSize: "22px 22px",
               }}
             >
+              {/* Photo — fills entire container, behind header and buttons */}
+              <div className="absolute inset-0 flex items-center justify-center px-6 py-2">
+                <img
+                  src={preview}
+                  className="max-h-full max-w-full rounded-3xl shadow-2xl object-contain border border-border/30"
+                  alt="Pré-visualização"
+                  style={{ touchAction: "none" }}
+                />
+              </div>
+
               {/* Header */}
-              <div className="safe-top px-4 pb-3 flex items-center justify-between">
+              <div className="absolute inset-x-0 top-0 safe-top px-4 pb-3 flex items-center justify-between z-10">
                 <button
                   onClick={() => setPreview(null)}
                   className="p-2 -ml-1 rounded-full hover:bg-muted transition-colors text-foreground"
@@ -206,7 +215,7 @@ export function CameraCapture(props: Props) {
                   <button
                     aria-label="Termômetro"
                     onClick={() => setThermoOpen((o) => !o)}
-                    className={`fixed top-16 right-4 z-50 w-12 h-12 rounded-lg border shadow-md flex items-center justify-center transition-colors ${
+                    className={`absolute top-16 right-4 z-20 w-12 h-12 rounded-lg border shadow-md flex items-center justify-center transition-colors ${
                       thermoOpen
                         ? "bg-primary text-white border-primary"
                         : "bg-background text-muted-foreground border-border"
@@ -215,43 +224,50 @@ export function CameraCapture(props: Props) {
                     <ThermoIcon size={18} />
                   </button>
                   {thermoOpen && (
-                    <div className="fixed top-30 right-4 z-50 bg-background border border-border rounded-2xl shadow-xl p-4 flex items-center gap-4">
-                      <div className="h-60 flex">
-                        <Thermometer value={props.thermoValue ?? 2} onChange={props.onThermoChange} />
-                      </div>
-                      <div className="flex flex-col items-center gap-1 w-14">
-                        <span className="text-xl font-bold tabular-nums leading-none text-foreground text-center w-full block">
-                          {(props.thermoValue ?? 2).toFixed(1)}°
-                        </span>
-                        <span className="text-[10px] text-muted-foreground text-center w-full block">Celsius</span>
-                      </div>
+                    <div className="absolute top-30 right-4 z-20">
+                      <ThermometerInput value={props.thermoValue ?? 2} onChange={props.onThermoChange} />
                     </div>
                   )}
                 </>
               )}
 
-              {/* Photo */}
-              <div className="flex-1 flex items-center justify-center px-6 py-2 min-h-0">
-                <img
-                  src={preview}
-                  className="max-h-full max-w-full rounded-3xl shadow-2xl object-contain border border-border/30"
-                  alt="Pré-visualização"
-                />
-              </div>
-
               {/* Actions */}
-              <div className="shrink-0 safe-bottom px-5 pt-3 pb-5 flex gap-3">
+              <div
+                className="absolute inset-x-0 bottom-0 px-5 pt-3 flex gap-3 z-10"
+                style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 20px)" }}
+              >
                 <button
+                  type="button"
+                  aria-label="Refazer"
                   onClick={() => setPreview(null)}
-                  className="flex-1 h-12 rounded-2xl border border-border bg-background flex items-center justify-center gap-2 font-medium text-sm text-foreground"
+                  className="flex-1 h-12 rounded-2xl border border-border bg-background flex items-center justify-center text-foreground"
                 >
-                  <RefreshCcw size={16} /> Refazer
+                  <Trash2Icon size={18} />
                 </button>
+                {props.mode === "photo" && props.onAddMore && (
+                  <button
+                    type="button"
+                    aria-label="Adicionar mais fotos"
+                    onClick={() => {
+                      props.onAddMore!({ dataUrl: preview! });
+                      setPreview(null);
+                    }}
+                    className="flex-1 h-12 rounded-2xl border border-border text-primary bg-background flex items-center justify-center"
+                  >
+                    <ImagePlus size={18} />
+                  </button>
+                )}
                 <button
-                  onClick={confirm}
-                  className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center gap-2 font-semibold text-sm"
+                  type="button"
+                  aria-label="Concluir"
+                  onClick={() => {
+                    if (props.mode === "photo" && preview) {
+                      props.onCapture({ dataUrl: preview });
+                    }
+                  }}
+                  className="flex-1 h-12 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center"
                 >
-                  <Check size={18} /> Usar foto
+                  <Check size={20} />
                 </button>
               </div>
             </div>

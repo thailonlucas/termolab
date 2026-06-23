@@ -125,11 +125,10 @@ function Lightbox({
   const label = movementTypeLabel(movement.movement_types);
 
   return (
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex flex-col bg-black">
       <div
         className="flex items-center justify-between px-4 pt-10 pb-3"
         style={{ background: "linear-gradient(to bottom,rgba(0,0,0,.75),transparent)" }}
-        onClick={(e) => e.stopPropagation()}
       >
         <div>
           <p className="font-semibold text-white text-sm">{label || "Movimentação"}</p>
@@ -147,14 +146,14 @@ function Lightbox({
         </button>
       </div>
 
-      <div className="flex-1 relative flex items-center justify-center" onClick={onClose}>
+      <div className="flex-1 relative flex items-center justify-center overflow-auto"
+        style={{ touchAction: "pan-x pan-y pinch-zoom" }}>
         {loading && (
           <div className="w-10 h-10 rounded-full border-2 animate-spin"
             style={{ borderColor: "rgba(255,255,255,.3)", borderTopColor: "white" }} />
         )}
         {!loading && url && (
-          <img src={url} alt={label} className="max-h-full max-w-full object-contain"
-            onClick={(e) => e.stopPropagation()} />
+          <img src={url} alt={label} className="max-h-full max-w-full object-contain" />
         )}
         {!loading && !url && (
           <div className="flex flex-col items-center gap-3" style={{ color: "rgba(255,255,255,.4)" }}>
@@ -163,14 +162,14 @@ function Lightbox({
           </div>
         )}
         {hasPrev && (
-          <button onClick={(e) => { e.stopPropagation(); onChange(state.index - 1); }}
+          <button onClick={() => onChange(state.index - 1)}
             className="absolute left-3 w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: "rgba(0,0,0,.5)" }}>
             <ChevronLeft size={22} className="text-white" />
           </button>
         )}
         {hasNext && (
-          <button onClick={(e) => { e.stopPropagation(); onChange(state.index + 1); }}
+          <button onClick={() => onChange(state.index + 1)}
             className="absolute right-3 w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: "rgba(0,0,0,.5)" }}>
             <ChevronRight size={22} className="text-white" />
@@ -179,8 +178,7 @@ function Lightbox({
       </div>
 
       <div className="px-4 pb-10 pt-3"
-        style={{ background: "linear-gradient(to top,rgba(0,0,0,.75),transparent)" }}
-        onClick={(e) => e.stopPropagation()}>
+        style={{ background: "linear-gradient(to top,rgba(0,0,0,.75),transparent)" }}>
         {movement.temperature_val != null && (
           <div className="flex items-center gap-1.5 mb-3">
             <ThermoIcon size={14} style={{ color: "rgba(255,255,255,.6)" }} />
@@ -253,9 +251,11 @@ function MovementCard({
               <ImageOff size={28} className="text-muted-foreground" />
             </div>
           )}
-          <div className="absolute bottom-2 right-2 px-2 py-1 rounded-lg text-[10px] font-medium text-white flex items-center gap-1"
-            style={{ background: "rgba(0,0,0,.5)" }}>
-            <ImageIcon size={10} /> Ver foto
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="px-3 py-1.5 rounded-xl text-xs font-medium text-white flex items-center gap-1.5"
+              style={{ background: "rgba(0,0,0,.5)" }}>
+              <ImageIcon size={12} /> Ver foto
+            </div>
           </div>
         </button>
       ) : (

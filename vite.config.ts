@@ -5,16 +5,20 @@
 //     error logger plugins, and sandbox detection (port/host/strictPort).
 // You can pass additional config via defineConfig({ vite: { ... }, etc... }) if needed.
 import { defineConfig } from "@lovable.dev/vite-tanstack-config";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 
 export default defineConfig({
+  nitro: { preset: "vercel" },
   tanstackStart: {
     // Redirect TanStack Start's bundled server entry to src/server.ts (our SSR error wrapper).
     // nitro/vite builds from this
     server: { entry: "server" },
   },
   vite: {
+    plugins: [basicSsl()],
     server: {
       port: 8082,
+      https: true,
     },
   },
 });

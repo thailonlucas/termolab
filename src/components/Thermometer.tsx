@@ -1,3 +1,6 @@
+// Thermometer (slider variant) — kept for reference, not used in production.
+// Use ThermometerInput for the keyboard-based variant.
+/*
 import { useRef, useState } from "react";
 
 export function Thermometer({
@@ -31,7 +34,7 @@ export function Thermometer({
 
   return (
     <div
-      className="flex flex-col items-center select-none w-12 py-5"
+      className="flex flex-col items-center select-none touch-none w-12 py-5"
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
@@ -78,3 +81,4 @@ export function Thermometer({
     </div>
   );
 }
+*/

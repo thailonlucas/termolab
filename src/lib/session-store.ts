@@ -36,7 +36,7 @@ export type WizardState = {
   };
 };
 
-const KEY = "termolab:wizard";
+const KEY = "TermoTracking:wizard";
 
 const emptyBox: BoxDraft = {
   box_id: "",

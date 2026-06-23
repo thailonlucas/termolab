@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_authenticated")({
 });
 
 function AuthedLayout() {
-  const { user, loading } = useAuth();
+  const { user, loading, isRecovery } = useAuth();
   const { pathname } = useLocation();
 
   if (loading) {
@@ -17,6 +17,9 @@ function AuthedLayout() {
         <div className="w-8 h-8 rounded-full border-2 border-foreground/20 border-t-foreground animate-spin" />
       </div>
     );
+  }
+  if (isRecovery) {
+    return <Navigate to="/auth" />;
   }
   if (!user) {
     return <Navigate to="/auth" />;

@@ -29,6 +29,31 @@ import {
   CheckCircle2,
   CalendarClock,
 } from "lucide-react";
+import { LeaveConfirmDialog } from "@/components/LeaveConfirmDialog";
+
+type WorkflowFilter = "all" | "entrada" | "saida";
+
+const WORKFLOW_TABS: { id: WorkflowFilter; label: string; sub: string }[] = [
+  { id: "all",     label: "Embarque",     sub: "Todos os dias" },
+  { id: "entrada", label: "Entrada",  sub: "Sexta"        },
+  { id: "saida",   label: "Saída", sub: "Domingo"      },
+];
+
+const WORKFLOW_NAMES: Record<Exclude<WorkflowFilter, "all">, Set<string>> = {
+  entrada: new Set(["open_box", "place_in_cold_chamber", "ice_temperature_reading", "medicine_temperature_reading"]),
+  saida:   new Set(["seal_box", "remove_from_cold_chamber", "ice_temperature_reading", "medicine_temperature_reading"]),
+};
+
+function getDefaultWorkflow(): WorkflowFilter {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    weekday: "short",
+  }).formatToParts(new Date());
+  const day = parts.find((p) => p.type === "weekday")?.value ?? "";
+  if (day === "Fri") return "entrada";
+  if (day === "Sun") return "saida";
+  return "all";
+}
 
 type NextMaintenanceOption = "6" | "24" | "48" | "none" | "custom";
 
@@ -75,9 +100,13 @@ function Wizard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [flow, setFlow] = useState<FlowStep>({ kind: "list" });
+  const [cameraKey, setCameraKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [tempValue, setTempValue] = useState(2);
+  const [tempSet, setTempSet] = useState(false);
+  const [workflowFilter, setWorkflowFilter] = useState<WorkflowFilter>(getDefaultWorkflow);
   const [showFinalizeModal, setShowFinalizeModal] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [nextOption, setNextOption] = useState<NextMaintenanceOption>("24");
   const [customHours, setCustomHours] = useState("");
 
@@ -99,6 +128,11 @@ function Wizard() {
     },
   });
 
+  const filteredTypes =
+    workflowFilter === "all"
+      ? types
+      : types.filter((t) => WORKFLOW_NAMES[workflowFilter].has(t.name));
+
   function pickType(t: MovementType) {
     if (t.requires_photo) {
       setFlow({ kind: "camera", type: t });
@@ -107,7 +141,12 @@ function Wizard() {
     }
   }
 
-  function commit(t: MovementType, opts?: { photoDataUrl?: string }) {
+  function resetTemp() {
+    setTempValue(2);
+    setTempSet(false);
+  }
+
+  function commitMovement(t: MovementType, opts?: { photoDataUrl?: string }) {
     const m: DraftMovement = {
       localId: crypto.randomUUID(),
       movementTypeId: t.id,
@@ -115,9 +154,14 @@ function Wizard() {
       movementTypeLabel: t.label,
       occurredAt: new Date().toISOString(),
       photoDataUrl: opts?.photoDataUrl,
-      temperature: t.requires_temperature ? tempValue : null,
+      temperature: t.requires_temperature && tempSet ? tempValue : null,
     };
     wizardStore.addMovement(m);
+  }
+
+  function commit(t: MovementType, opts?: { photoDataUrl?: string }) {
+    commitMovement(t, opts);
+    resetTemp();
     setFlow({ kind: "list" });
   }
 
@@ -153,23 +197,33 @@ function Wizard() {
 
   // ===== Sub-flows =====
   if (flow.kind === "camera") {
+    const capturedType = flow.type;
     return (
       <CameraCapture
+        key={cameraKey}
         mode="photo"
         boxId={boxData.box_id}
-        stageLabel={flow.type.label.toUpperCase()}
+        stageLabel={capturedType.label.toUpperCase()}
         onClose={() => setFlow({ kind: "list" })}
         onCapture={({ dataUrl }) => {
-          commit(flow.type, { photoDataUrl: dataUrl });
+          commitMovement(capturedType, { photoDataUrl: dataUrl });
+          resetTemp();
+          setFlow({ kind: "picker" });
+        }}
+        onAddMore={({ dataUrl }) => {
+          commitMovement(capturedType, { photoDataUrl: dataUrl });
+          resetTemp();
+          setCameraKey((k) => k + 1);
         }}
         thermoValue={tempValue}
-        onThermoChange={setTempValue}
+        onThermoChange={(v) => { setTempValue(v); setTempSet(true); }}
       />
     );
   }
 
   if (flow.kind === "picker") {
     return (
+      <>
       <div className="min-h-screen bg-background">
         <header className="safe-top page-pad pb-3 flex items-center">
           <button onClick={() => setFlow({ kind: "list" })} className="p-2 -ml-2">
@@ -178,8 +232,26 @@ function Wizard() {
           <h2 className="ml-1 font-semibold text-lg">Tipo de movimentação</h2>
         </header>
 
-        <div className="page-pad pb-10 grid grid-cols-2 gap-3">
-          {types.map((t) => (
+        <div className="flex gap-2 overflow-x-auto px-4 pb-3 border-b border-border/40" style={{ scrollbarWidth: "none" }}>
+          {WORKFLOW_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setWorkflowFilter(tab.id)}
+              className="shrink-0 flex flex-col items-center justify-center rounded-xl px-4 py-2.5 transition-colors"
+              style={
+                workflowFilter === tab.id
+                  ? { background: "#000", border: "1.5px solid #000", color: "#fff" }
+                  : { background: "transparent", border: "1.5px solid var(--color-border)", color: "var(--color-foreground)" }
+              }
+            >
+              <span className="text-sm font-bold leading-none whitespace-nowrap">{tab.label}</span>
+              <span className="text-[10px] mt-1 opacity-60">{tab.sub}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="page-pad pb-10 grid grid-cols-2 gap-3 mt-3">
+          {filteredTypes.map((t) => (
             <button
               key={t.id}
               onClick={() => pickType(t)}
@@ -191,26 +263,42 @@ function Wizard() {
           ))}
         </div>
       </div>
+
+      <BottomBar>
+        <button
+          onClick={() => setFlow({ kind: "list" })}
+          className="btn-ghost flex-1"
+        >
+          Ver movimentações
+          {movements.length > 0 && (
+            <span className="ml-2 px-2 py-0.5 rounded-full bg-muted text-xs font-semibold">
+              {movements.length}
+            </span>
+          )}
+        </button>
+      </BottomBar>
+      </>
     );
   }
 
   // List mode
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div
+      className="min-h-screen bg-background flex flex-col"
+      style={{
+        backgroundImage: "radial-gradient(circle, #e2e8f0 1.5px, transparent 1.5px)",
+        backgroundSize: "22px 22px",
+      }}
+    >
       <WizardHeader
         boxId={boxData.box_id}
         nfKey={boxData.nf_key}
         sender={boxData.sender}
         movementCount={movements.length}
-        onCancel={() => {
-          if (confirm("Cancelar sessão? As movimentações em rascunho serão perdidas.")) {
-            wizardStore.reset();
-            navigate({ to: "/" });
-          }
-        }}
+        onCancel={() => setShowCancelDialog(true)}
       />
 
-      <div className="page-pad flex-1 flex flex-col h-full pb-30">
+      <div className="page-pad flex-1 flex flex-col overflow-y-auto pb-30">
         {movements.length === 0 ? (
           <EmptyState
             fill
@@ -273,6 +361,13 @@ function Wizard() {
           <Plus size={22} />
         </button>
       </BottomBar>
+
+      <LeaveConfirmDialog
+        open={showCancelDialog}
+        onOpenChange={setShowCancelDialog}
+        description="As movimentações em rascunho serão perdidas."
+        onConfirm={() => { wizardStore.reset(); navigate({ to: "/" }); }}
+      />
 
       <BottomSheet
         open={showFinalizeModal}

@@ -12,7 +12,7 @@ export function BottomNav() {
   const plusAction = usePlusAction();
   return (
     <nav className="fixed bottom-0 inset-x-0 z-30 safe-bottom bg-background/95 backdrop-blur border-t border-border">
-      <div className="mx-auto max-w-md flex items-stretch justify-around px-2 pt-2">
+      <div className="mx-auto max-w-md flex items-center justify-around px-2 py-2">
         {items.slice(0, 1).map((it) => {
           const active = pathname === it.to;
           const Icon = it.icon;
@@ -20,7 +20,7 @@ export function BottomNav() {
             <Link
               key={it.to}
               to={it.to}
-              className="flex-1 flex flex-col items-center gap-1 py-2 text-xs"
+              className="flex-1 flex flex-col items-center justify-center gap-1 text-xs"
               style={{ color: active ? "var(--color-ink)" : "var(--color-muted-foreground)" }}
             >
               <Icon size={22} strokeWidth={active ? 2.2 : 1.6} />
@@ -31,7 +31,7 @@ export function BottomNav() {
         {plusAction ? (
           <button
             onClick={plusAction}
-            className="flex flex-col items-center gap-1 py-1"
+            className="flex items-center justify-center"
             aria-label="Nova manutenção"
           >
             <span className="flex items-center justify-center w-14 h-14 rounded-full bg-ink text-primary-foreground shadow-lg">
@@ -41,7 +41,7 @@ export function BottomNav() {
         ) : (
           <Link
             to="/new-box"
-            className="flex flex-col items-center gap-1 py-1"
+            className="flex items-center justify-center"
             aria-label="Novo manuseio"
           >
             <span className="flex items-center justify-center w-14 h-14 rounded-full bg-ink text-primary-foreground shadow-lg">
@@ -56,7 +56,7 @@ export function BottomNav() {
             <Link
               key={it.to}
               to={it.to}
-              className="flex-1 flex flex-col items-center gap-1 py-2 text-xs"
+              className="flex-1 flex flex-col items-center justify-center gap-1 text-xs"
               style={{ color: active ? "var(--color-ink)" : "var(--color-muted-foreground)" }}
             >
               <Icon size={22} strokeWidth={active ? 2.2 : 1.6} />
